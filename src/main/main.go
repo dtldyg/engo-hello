@@ -8,11 +8,7 @@ import (
 type msScene struct{}
 
 func (ms *msScene) Preload() {
-
-	err := engo.Files.Load("assets/textures/city.png")
-	if err != nil {
-		panic(err)
-	}
+	engo.Files.Load("textures/city.png")
 }
 
 func (ms *msScene) Setup(engo.Updater) {}
