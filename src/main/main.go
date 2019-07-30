@@ -1,20 +1,61 @@
 package main
 
 import (
+	"github.com/EngoEngine/ecs"
 	"github.com/EngoEngine/engo"
-	_ "github.com/EngoEngine/engo/common"
+	"github.com/EngoEngine/engo/common"
 )
 
+//scene
 type msScene struct{}
 
 func (ms *msScene) Preload() {
-	engo.Files.Load("textures/city.png")
+	err := engo.Files.Load("textures/city.png") //preload to pre-loader
+	if err != nil {
+		panic(err)
+	}
 }
 
-func (ms *msScene) Setup(engo.Updater) {}
+func (ms *msScene) Setup(u engo.Updater) {
+	world, _ := u.(*ecs.World)
+
+	//add system to world
+	world.AddSystem(&common.RenderSystem{})
+
+	//make entity
+	city := City{BasicEntity: ecs.NewBasic()}
+	city.SpaceComponent = common.SpaceComponent{
+		Position: engo.Point{X: 50, Y: 10},
+		Width:    303,
+		Height:   641,
+	}
+	texture, err := common.LoadedSprite("textures/city.png") //load from pre-loader
+	if err != nil {
+		panic(err)
+	}
+	city.RenderComponent = common.RenderComponent{
+		Drawable: texture,
+		Scale:    engo.Point{X: 0.1, Y: 0.1},
+	}
+
+	//add entity to system
+	for _, system := range world.Systems() {
+		switch sys := system.(type) {
+		case *common.RenderSystem:
+			sys.Add(&city.BasicEntity, &city.RenderComponent, &city.SpaceComponent)
+		}
+	}
+}
 
 func (ms *msScene) Type() string {
 	return "myGame"
+}
+
+//entity
+type City struct {
+	ecs.BasicEntity        //继承基础实体
+	common.SpaceComponent  //空间组件：在哪渲染
+	common.RenderComponent //渲染组件：渲染什么
 }
 
 func main() {
