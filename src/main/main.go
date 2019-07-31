@@ -4,6 +4,7 @@ import (
 	"github.com/EngoEngine/ecs"
 	"github.com/EngoEngine/engo"
 	"github.com/EngoEngine/engo/common"
+	"image/color"
 )
 
 //scene
@@ -17,6 +18,7 @@ func (ms *msScene) Preload() {
 }
 
 func (ms *msScene) Setup(u engo.Updater) {
+	common.SetBackground(color.White)
 	world, _ := u.(*ecs.World)
 
 	//add system to world
@@ -25,7 +27,7 @@ func (ms *msScene) Setup(u engo.Updater) {
 	//make entity
 	city := City{BasicEntity: ecs.NewBasic()}
 	city.SpaceComponent = common.SpaceComponent{
-		Position: engo.Point{X: 50, Y: 10},
+		Position: engo.Point{X: 10, Y: 10},
 		Width:    303,
 		Height:   641,
 	}
@@ -35,7 +37,7 @@ func (ms *msScene) Setup(u engo.Updater) {
 	}
 	city.RenderComponent = common.RenderComponent{
 		Drawable: texture,
-		Scale:    engo.Point{X: 0.1, Y: 0.1},
+		Scale:    engo.Point{X: 1, Y: 1},
 	}
 
 	//add entity to system
