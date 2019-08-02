@@ -1,6 +1,7 @@
 package main
 
 import (
+	"engo-hello/src/systems"
 	"github.com/EngoEngine/ecs"
 	"github.com/EngoEngine/engo"
 	"github.com/EngoEngine/engo/common"
@@ -18,11 +19,15 @@ func (ms *msScene) Preload() {
 }
 
 func (ms *msScene) Setup(u engo.Updater) {
-	common.SetBackground(color.White)
 	world, _ := u.(*ecs.World)
 
-	//add system to world
+	//set bg
+	common.SetBackground(color.White)
+	//add system
 	world.AddSystem(&common.RenderSystem{})
+	world.AddSystem(&systems.CityBuildingSystem{})
+	//register input
+	engo.Input.RegisterButton("AddCity", engo.KeyF1)
 
 	//make entity
 	city := City{BasicEntity: ecs.NewBasic()}
@@ -55,9 +60,9 @@ func (ms *msScene) Type() string {
 
 //entity
 type City struct {
-	ecs.BasicEntity        //继承基础实体
-	common.SpaceComponent  //空间组件：在哪渲染
-	common.RenderComponent //渲染组件：渲染什么
+	ecs.BasicEntity
+	common.SpaceComponent
+	common.RenderComponent
 }
 
 func main() {
