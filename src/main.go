@@ -5,6 +5,7 @@ import (
 	"github.com/EngoEngine/ecs"
 	"github.com/EngoEngine/engo"
 	"github.com/EngoEngine/engo/common"
+	"image"
 	"image/color"
 )
 
@@ -12,44 +13,49 @@ import (
 type msScene struct{}
 
 func (ms *msScene) Preload() {
-	err := engo.Files.Load("textures/city.png") //preload to pre-loader
+	//preload file to pre-loader
+	err := engo.Files.Load("textures/city.png", "tilemap/TrafficMap.tmx")
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (ms *msScene) Setup(u engo.Updater) {
+	//get world
 	world, _ := u.(*ecs.World)
 
 	//set bg
 	common.SetBackground(color.White)
 	//add system
 	world.AddSystem(&common.RenderSystem{})
+	world.AddSystem(common.NewKeyboardScroller(40, engo.DefaultHorizontalAxis, engo.DefaultVerticalAxis))
+	//world.AddSystem(&common.EdgeScroller{100, 20})
+	world.AddSystem(&common.MouseZoomer{-0.125})
 	world.AddSystem(&systems.CityBuildingSystem{})
-	//register input
-	engo.Input.RegisterButton("AddCity", engo.KeyF1)
 
-	//make entity
-	city := City{BasicEntity: ecs.NewBasic()}
-	city.SpaceComponent = common.SpaceComponent{
-		Position: engo.Point{X: 10, Y: 10},
-		Width:    303,
-		Height:   641,
+	//HUD entity
+	hud := HUD{BasicEntity: ecs.NewBasic()}
+	hud.SpaceComponent = common.SpaceComponent{
+		Position: engo.Point{0, engo.WindowHeight() - 30},
+		Width:    30,
+		Height:   30,
 	}
-	texture, err := common.LoadedSprite("textures/city.png") //load from pre-loader
-	if err != nil {
-		panic(err)
+	imageUniform := image.NewUniform(color.NRGBA{205, 205, 205, 0x6f})
+	imageNRGBA := common.ImageToNRGBA(imageUniform, 200, 200)
+	hudImage := common.NewImageObject(imageNRGBA)
+	hudTexture := common.NewTextureSingle(hudImage)
+	hud.RenderComponent = common.RenderComponent{
+		Drawable: hudTexture,
+		Scale:    engo.Point{},
+		Repeat:   common.Repeat,
 	}
-	city.RenderComponent = common.RenderComponent{
-		Drawable: texture,
-		Scale:    engo.Point{X: 1, Y: 1},
-	}
-
+	hud.RenderComponent.SetShader(common.HUDShader)
+	hud.RenderComponent.SetZIndex(1)
 	//add entity to system
 	for _, system := range world.Systems() {
 		switch sys := system.(type) {
 		case *common.RenderSystem:
-			sys.Add(&city.BasicEntity, &city.RenderComponent, &city.SpaceComponent)
+			sys.Add(&hud.BasicEntity, &hud.RenderComponent, &hud.SpaceComponent)
 		}
 	}
 }
@@ -58,8 +64,7 @@ func (ms *msScene) Type() string {
 	return "myGame"
 }
 
-//entity
-type City struct {
+type HUD struct {
 	ecs.BasicEntity
 	common.SpaceComponent
 	common.RenderComponent
@@ -67,9 +72,11 @@ type City struct {
 
 func main() {
 	opts := engo.RunOptions{
-		Title:  "Hello Engo!",
-		Width:  400,
-		Height: 400,
+		Title:          "Hello Engo!",
+		Width:          100,
+		Height:         100,
+		StandardInputs: true,
+		NotResizable:   true,
 	}
 	scene := &msScene{}
 	engo.Run(opts, scene)
