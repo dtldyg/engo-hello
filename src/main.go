@@ -24,14 +24,19 @@ func (ms *msScene) Setup(u engo.Updater) {
 	//get world
 	world, _ := u.(*ecs.World)
 
-	//set bg
+	//set default bg
 	common.SetBackground(color.White)
 	//add system
 	world.AddSystem(&common.RenderSystem{})
-	world.AddSystem(common.NewKeyboardScroller(40, engo.DefaultHorizontalAxis, engo.DefaultVerticalAxis))
+	world.AddSystem(common.NewKeyboardScroller(200, engo.DefaultHorizontalAxis, engo.DefaultVerticalAxis))
 	//world.AddSystem(&common.EdgeScroller{100, 20})
 	world.AddSystem(&common.MouseZoomer{-0.125})
 	world.AddSystem(&systems.CityBuildingSystem{})
+
+	//set map
+	if err := setMap(world, "tilemap/TrafficMap.tmx"); err != nil {
+		panic(err)
+	}
 
 	//HUD entity
 	hud := HUD{BasicEntity: ecs.NewBasic()}
@@ -60,6 +65,45 @@ func (ms *msScene) Setup(u engo.Updater) {
 	}
 }
 
+func setMap(world *ecs.World, url string) error {
+	//set map
+	resource, err := engo.Files.Resource(url)
+	if err != nil {
+		return err
+	}
+	tmxResource := resource.(common.TMXResource)
+	levelData := tmxResource.Level
+	tiles := make([]*Tile, 0)
+	for _, tileLayer := range levelData.TileLayers {
+		for _, tileElement := range tileLayer.Tiles {
+			if tileElement.Image != nil {
+				tile := &Tile{BasicEntity: ecs.NewBasic()}
+				tile.RenderComponent = common.RenderComponent{
+					Drawable: tileElement,
+					Scale:    engo.Point{1, 1},
+				}
+				tile.SpaceComponent = common.SpaceComponent{
+					Position: tileElement.Point,
+					Width:    0,
+					Height:   0,
+				}
+				tiles = append(tiles, tile)
+			}
+		}
+	}
+	// add the tiles to the RenderSystem
+	for _, system := range world.Systems() {
+		switch sys := system.(type) {
+		case *common.RenderSystem:
+			for _, v := range tiles {
+				sys.Add(&v.BasicEntity, &v.RenderComponent, &v.SpaceComponent)
+			}
+		}
+	}
+	common.CameraBounds = levelData.Bounds()
+	return nil
+}
+
 func (ms *msScene) Type() string {
 	return "myGame"
 }
@@ -68,6 +112,12 @@ type HUD struct {
 	ecs.BasicEntity
 	common.SpaceComponent
 	common.RenderComponent
+}
+
+type Tile struct {
+	ecs.BasicEntity
+	common.RenderComponent
+	common.SpaceComponent
 }
 
 func main() {
